@@ -46,7 +46,7 @@
     text-align:center;
     padding:40px 18px;
     cursor:pointer;
-    transition:border-color .18s, background .18s, transform .18s;
+    transition:border-color .18s, background .18s;
     user-select:none;
   }
   .drop:hover{border-color:#3d4757}
@@ -66,7 +66,7 @@
 
   .controls{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
     gap:16px;
     align-items:end;
   }
@@ -118,9 +118,113 @@
     background:var(--panel-2);
     border:1px solid var(--border);
     border-radius:10px;
+    white-space:nowrap;
   }
   .format-badge b{color:var(--text);font-weight:600}
 
+  /* ---------- ползунок смещения ---------- */
+  .offset-panel{display:flex;flex-direction:column;gap:10px}
+  .slider-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:13px;color:var(--muted);
+  }
+  .slider-head b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+
+  input[type="range"]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:26px;
+    background:transparent;
+    outline:none;
+    margin:0;
+    cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track{
+    height:6px;
+    border-radius:99px;
+    background:linear-gradient(90deg,var(--accent) 0 var(--fill,0%),#2b303b var(--fill,0%) 100%);
+  }
+  input[type="range"]::-moz-range-track{
+    height:6px;
+    border-radius:99px;
+    background:#2b303b;
+  }
+  input[type="range"]::-moz-range-progress{
+    height:6px;
+    border-radius:99px;
+    background:var(--accent);
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:20px;height:20px;
+    margin-top:-7px;
+    border-radius:50%;
+    background:#fff;
+    border:3px solid var(--accent);
+    box-shadow:0 2px 8px rgba(0,0,0,.45);
+    transition:transform .12s;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:20px;height:20px;
+    border-radius:50%;
+    background:#fff;
+    border:3px solid var(--accent);
+    box-shadow:0 2px 8px rgba(0,0,0,.45);
+  }
+  input[type="range"]:active::-webkit-slider-thumb{transform:scale(1.12)}
+  input[type="range"]:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ---------- предпросмотр ---------- */
+  .preview-wrap{margin-bottom:18px}
+  .preview-head{
+    display:flex;flex-wrap:wrap;gap:10px 18px;align-items:baseline;
+    justify-content:space-between;margin-bottom:12px;
+  }
+  .preview-title{font-size:14px;color:var(--muted)}
+  .preview-title b{color:var(--text);font-weight:600}
+  .preview-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  .stage{
+    position:relative;
+    overflow:hidden;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background-color:#14161b;
+    background-image:
+      linear-gradient(45deg,#1c1f26 25%,transparent 25%),
+      linear-gradient(-45deg,#1c1f26 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#1c1f26 75%),
+      linear-gradient(-45deg,transparent 75%,#1c1f26 75%);
+    background-size:20px 20px;
+    background-position:0 0,0 10px,10px -10px,-10px 0;
+    user-select:none;
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* картинка — отдельный слой на всю сцену, без transform'ов */
+  .stage img{
+    display:block;
+    image-rendering:pixelated;
+    pointer-events:none;
+    max-width:none;
+  }
+  /* сетка поверх — в координатах сцены */
+  .grid-overlay{
+    position:absolute;inset:0;
+    pointer-events:none;
+    z-index:2;
+  }
+  .grid-overlay .vline,
+  .grid-overlay .hline{
+    position:absolute;
+    background:rgba(79,140,255,.9);
+    box-shadow:0 0 0 1px rgba(0,0,0,.45);
+  }
+  .grid-overlay .vline{top:0;bottom:0;width:1px}
+  .grid-overlay .hline{left:0;right:0;height:1px}
+
+  /* ---------- результат ---------- */
   .result-head{
     display:flex;flex-wrap:wrap;gap:14px;
     align-items:center;justify-content:space-between;
@@ -153,6 +257,7 @@
   }
   .btn.primary:hover{filter:brightness(1.08)}
   .btn.small{padding:7px 12px;font-size:13px;width:100%}
+  .btn.tiny{padding:7px 12px;font-size:13px}
 
   .tiles{
     display:grid;
@@ -167,11 +272,8 @@
     display:flex;flex-direction:column;gap:9px;
   }
   .tile-img{
-    height:120px;
-    width:100%;
-    border:0;
-    padding:6px;
-    border-radius:9px;
+    height:120px;width:100%;
+    border:0;padding:6px;border-radius:9px;
     cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     overflow:hidden;
@@ -197,12 +299,9 @@
     font-size:12.5px;color:var(--muted);
   }
   .tile-idx{
-    background:#2a303c;
-    color:var(--text);
-    border-radius:6px;
-    padding:2px 8px;
-    font-variant-numeric:tabular-nums;
-    font-size:12px;
+    background:#2a303c;color:var(--text);
+    border-radius:6px;padding:2px 8px;
+    font-variant-numeric:tabular-nums;font-size:12px;
   }
   .tile-dim{font-variant-numeric:tabular-nums}
 
@@ -212,8 +311,7 @@
     border:1px solid rgba(255,90,90,.25);
     border-radius:10px;
     padding:12px 14px;
-    font-size:14px;
-    line-height:1.5;
+    font-size:14px;line-height:1.5;
   }
   .spin{
     display:inline-block;width:14px;height:14px;vertical-align:-2px;
@@ -230,7 +328,7 @@
 <div class="app">
   <header>
     <h1>Нарезка изображения на плитки</h1>
-    <p class="sub">Загрузите картинку и разрежьте её на части заданного размера. Все плитки сохраняются в PNG. Всё происходит прямо в браузере — файлы никуда не отправляются.</p>
+    <p class="sub">Загрузите картинку, настройте размер плитки и ползунком выставьте горизонтальное смещение сетки. Все плитки сохраняются в PNG прямо в браузере.</p>
   </header>
 
   <section class="panel drop" id="drop">
@@ -259,6 +357,29 @@
     </label>
   </section>
 
+  <section class="panel offset-panel" id="offsetPanel" hidden>
+    <div class="slider-head">
+      <span>Смещение сетки по горизонтали</span>
+      <b id="offXVal">0 px</b>
+    </div>
+    <input type="range" id="offX" min="0" max="99" value="0" step="1" disabled>
+  </section>
+
+  <section class="panel preview-wrap" id="previewWrap" hidden>
+    <div class="preview-head">
+      <div class="preview-title">Предпросмотр сетки — <b>двигайте ползунок</b>, чтобы сместить нарезку</div>
+      <div class="preview-actions">
+        <button class="btn tiny" id="centerBtn">Центрировать</button>
+        <button class="btn tiny" id="zeroBtn">Сбросить смещение</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <img id="stageImg" alt="">
+      <div class="grid-overlay" id="gridOverlay"></div>
+    </div>
+  </section>
+
   <section class="panel result" id="result" hidden>
     <div class="result-head">
       <div class="summary" id="summary"></div>
@@ -283,6 +404,15 @@
     tileW:       $('#tileW'),
     tileH:       $('#tileH'),
     partial:     $('#partial'),
+    offsetPanel: $('#offsetPanel'),
+    offX:        $('#offX'),
+    offXVal:     $('#offXVal'),
+    previewWrap: $('#previewWrap'),
+    stage:       $('#stage'),
+    stageImg:    $('#stageImg'),
+    gridOverlay: $('#gridOverlay'),
+    centerBtn:   $('#centerBtn'),
+    zeroBtn:     $('#zeroBtn'),
     result:      $('#result'),
     summary:     $('#summary'),
     tiles:       $('#tiles'),
@@ -290,7 +420,7 @@
     reset:       $('#reset'),
   };
 
-  const MAX_TILES = 2000;
+  const MAX_TILES = 4000;
   const MIME = 'image/png';
 
   const state = {
@@ -298,6 +428,8 @@
     name: 'image',
     tiles: [],
     token: 0,
+    offX: 0,      // смещение сетки по X в пикселях исходника
+    scale: 1,     // исходный px -> экранный px
   };
 
   /* ---------- утилиты ---------- */
@@ -328,6 +460,20 @@
     els.tiles.innerHTML = '';
   }
 
+  function plural(n, one, few, many) {
+    const n10 = n % 10, n100 = n % 100;
+    if (n10 === 1 && n100 !== 11) return one;
+    if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+    return many;
+  }
+
+  function getTileSize() {
+    return {
+      tw: Math.max(1, Math.floor(Number(els.tileW.value) || 1)),
+      th: Math.max(1, Math.floor(Number(els.tileH.value) || 1)),
+    };
+  }
+
   /* ---------- загрузка файла ---------- */
 
   function loadFile(file) {
@@ -342,6 +488,11 @@
       URL.revokeObjectURL(url);
       state.img = img;
       state.name = safeBaseName(file.name);
+      state.offX = 0;
+      els.offsetPanel.hidden = false;
+      els.previewWrap.hidden = false;
+      updateSliderRange();
+      setupPreview();
       slice();
     };
     img.onerror = () => {
@@ -359,7 +510,141 @@
     clearTiles();
   }
 
-  /* ---------- нарезка (всегда PNG) ---------- */
+  /* ---------- ползунок ---------- */
+
+  function updateSliderRange() {
+    const { tw } = getTileSize();
+    els.offX.min = 0;
+    els.offX.max = tw - 1;
+    if (state.offX > tw - 1) state.offX = 0;
+    els.offX.value = state.offX;
+    els.offX.disabled = false;
+    updateSliderFill();
+    updateSliderLabel();
+  }
+
+  function updateSliderFill() {
+    const min = Number(els.offX.min) || 0;
+    const max = Number(els.offX.max) || 0;
+    const val = Number(els.offX.value) || 0;
+    const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    els.offX.style.setProperty('--fill', pct + '%');
+  }
+
+  function updateSliderLabel() {
+    els.offXVal.textContent = state.offX + ' px';
+  }
+
+  function onOffsetChange() {
+    const max = Number(els.offX.max) || 0;
+    state.offX = Math.max(0, Math.min(Number(els.offX.value) || 0, max));
+    updateSliderFill();
+    updateSliderLabel();
+    drawPreviewGrid();
+    slice();
+  }
+
+  /* ---------- предпросмотр ---------- */
+
+  function setupPreview() {
+    const img = state.img;
+    if (!img) return;
+
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    const wrapWidth = els.stage.parentElement.clientWidth || 800;
+    const maxStageW = Math.max(200, wrapWidth);
+    const maxStageH = Math.max(200, Math.round(window.innerHeight * 0.55));
+
+    const fitScale = Math.min(1, maxStageW / iw, maxStageH / ih);
+    state.scale = fitScale;
+
+    const dispW = Math.round(iw * fitScale);
+    const dispH = Math.round(ih * fitScale);
+
+    els.stage.style.width = dispW + 'px';
+    els.stage.style.height = dispH + 'px';
+
+    els.stageImg.src = img.src;
+    els.stageImg.style.width = dispW + 'px';
+    els.stageImg.style.height = dispH + 'px';
+
+    els.gridOverlay.style.width = dispW + 'px';
+    els.gridOverlay.style.height = dispH + 'px';
+
+    drawPreviewGrid();
+  }
+
+  function drawPreviewGrid() {
+    const img = state.img;
+    if (!img) return;
+
+    const { tw, th } = getTileSize();
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const scale = state.scale;
+
+    const overlay = els.gridOverlay;
+    overlay.innerHTML = '';
+
+    const dispW = Math.round(iw * scale);
+    const dispH = Math.round(ih * scale);
+
+    const frag = document.createDocumentFragment();
+    const stepX = tw * scale;
+    const stepY = th * scale;
+
+    // вертикальные линии: с учётом offX (в исходных px), но в экранных координатах
+    // линии идут через каждые stepX начиная с x = offX*scale
+    // чтобы заполнить всю сцену, идём и влево, и вправо от offX*scale
+    if (stepX > 0) {
+      const startOffset = ((state.offX * scale) % stepX + stepX) % stepX;
+      for (let x = startOffset; x <= dispW + 0.5; x += stepX) {
+        const line = document.createElement('div');
+        line.className = 'vline';
+        line.style.left = Math.round(x) + 'px';
+        frag.appendChild(line);
+      }
+    }
+
+    // горизонтальные линии: без смещения (смещение только по X)
+    if (stepY > 0) {
+      for (let y = 0; y <= dispH + 0.5; y += stepY) {
+        const line = document.createElement('div');
+        line.className = 'hline';
+        line.style.top = Math.round(y) + 'px';
+        frag.appendChild(line);
+      }
+    }
+
+    overlay.appendChild(frag);
+  }
+
+  /* ---------- кнопки ---------- */
+
+  function centerOffset() {
+    if (!state.img) return;
+    const { tw } = getTileSize();
+    const remX = state.img.naturalWidth % tw;
+    state.offX = Math.round(remX / 2);
+    els.offX.value = state.offX;
+    updateSliderFill();
+    updateSliderLabel();
+    drawPreviewGrid();
+    slice();
+  }
+
+  function zeroOffset() {
+    state.offX = 0;
+    els.offX.value = 0;
+    updateSliderFill();
+    updateSliderLabel();
+    drawPreviewGrid();
+    slice();
+  }
+
+  /* ---------- нарезка (PNG, смещение только по X) ---------- */
 
   async function slice() {
     if (!state.img) return;
@@ -369,12 +654,12 @@
     const iw = img.naturalWidth;
     const ih = img.naturalHeight;
 
-    const tw = Math.max(1, Math.floor(Number(els.tileW.value) || 1));
-    const th = Math.max(1, Math.floor(Number(els.tileH.value) || 1));
+    const { tw, th } = getTileSize();
     const includePartial = els.partial.checked;
+    const offX = state.offX % tw;
 
-    const cols = Math.ceil(iw / tw);
-    const rows = Math.ceil(ih / th);
+    const cols = Math.max(1, Math.ceil((iw - offX) / tw) + (offX > 0 ? 1 : 0));
+    const rows = Math.max(1, Math.ceil(ih / th));
     const total = cols * rows;
 
     clearTiles();
@@ -401,17 +686,32 @@
       for (let c = 0; c < cols; c++) {
         if (token !== state.token) return;
 
-        const sx = c * tw;
-        const sy = r * th;
-        const sw = Math.min(tw, iw - sx);
-        const sh = Math.min(th, ih - sy);
+        // X с учётом смещения: если offX>0, первый блок — [0, offX), остальные по tw
+        let blockX, blockW;
+        if (offX > 0) {
+          if (c === 0) {
+            blockX = 0;
+            blockW = Math.min(offX, iw);
+          } else {
+            blockX = offX + (c - 1) * tw;
+            blockW = Math.min(tw, iw - blockX);
+          }
+        } else {
+          blockX = c * tw;
+          blockW = Math.min(tw, iw - blockX);
+        }
 
-        if (!includePartial && (sw < tw || sh < th)) continue;
+        // Y без смещения
+        const blockY = r * th;
+        const blockH = Math.min(th, ih - blockY);
 
-        canvas.width = sw;
-        canvas.height = sh;
-        ctx.clearRect(0, 0, sw, sh);
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        if (blockW <= 0 || blockH <= 0) continue;
+        if (!includePartial && (blockW < tw || blockH < th)) continue;
+
+        canvas.width = blockW;
+        canvas.height = blockH;
+        ctx.clearRect(0, 0, blockW, blockH);
+        ctx.drawImage(img, blockX, blockY, blockW, blockH, 0, 0, blockW, blockH);
 
         const blob = await new Promise((res) => canvas.toBlob(res, MIME));
         if (token !== state.token) return;
@@ -420,15 +720,15 @@
         const index = produced.length + 1;
         const fileName =
           state.name + '_' + String(index).padStart(pad, '0') +
-          '_' + sw + 'x' + sh + '.png';
+          '_' + blockW + 'x' + blockH + '.png';
 
         produced.push({
           index,
           blob,
           url: URL.createObjectURL(blob),
           fileName,
-          w: sw,
-          h: sh,
+          w: blockW,
+          h: blockH,
         });
       }
     }
@@ -436,10 +736,10 @@
     if (token !== state.token) return;
 
     state.tiles = produced;
-    render(produced, { iw, ih, tw, th });
+    render(produced, { iw, ih, tw, th, offX });
   }
 
-  /* ---------- отрисовка ---------- */
+  /* ---------- отрисовка результатов ---------- */
 
   function render(tiles, info) {
     els.tiles.innerHTML = '';
@@ -487,16 +787,10 @@
       '<strong>' + tiles.length + '</strong> ' +
       plural(tiles.length, 'PNG-плитка', 'PNG-плитки', 'PNG-плиток') +
       ' · исходник ' + info.iw + '×' + info.ih + ' px' +
-      ' · плитка ' + info.tw + '×' + info.th + ' px';
+      ' · плитка ' + info.tw + '×' + info.th + ' px' +
+      ' · смещение X: ' + info.offX + ' px';
 
     els.downloadAll.disabled = tiles.length === 0;
-  }
-
-  function plural(n, one, few, many) {
-    const n10 = n % 10, n100 = n % 100;
-    if (n10 === 1 && n100 !== 11) return one;
-    if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
-    return many;
   }
 
   /* ---------- скачать всё ---------- */
@@ -555,16 +849,29 @@
   window.addEventListener('drop', (e) => e.preventDefault());
 
   let debounceId = null;
-  function scheduleSlice() {
+  function scheduleResize() {
     clearTimeout(debounceId);
-    debounceId = setTimeout(slice, 220);
+    debounceId = setTimeout(() => {
+      if (!state.img) return;
+      updateSliderRange();
+      setupPreview();
+      slice();
+    }, 200);
   }
 
-  [els.tileW, els.tileH, els.partial].forEach((el) => {
-    el.addEventListener('input', scheduleSlice);
-    el.addEventListener('change', scheduleSlice);
+  [els.tileW, els.tileH].forEach((el) => {
+    el.addEventListener('input', scheduleResize);
+    el.addEventListener('change', scheduleResize);
   });
 
+  els.partial.addEventListener('change', () => {
+    if (state.img) slice();
+  });
+
+  els.offX.addEventListener('input', onOffsetChange);
+
+  els.centerBtn.addEventListener('click', centerOffset);
+  els.zeroBtn.addEventListener('click', zeroOffset);
   els.downloadAll.addEventListener('click', downloadAll);
 
   els.reset.addEventListener('click', () => {
@@ -572,11 +879,24 @@
     clearTiles();
     state.img = null;
     state.name = 'image';
+    state.offX = 0;
     els.result.hidden = true;
+    els.previewWrap.hidden = true;
+    els.offsetPanel.hidden = true;
     els.tiles.innerHTML = '';
     els.summary.textContent = '';
     els.downloadAll.disabled = true;
     els.file.value = '';
+  });
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (!state.img) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      setupPreview();
+      slice();
+    }, 200);
   });
 })();
 </script>
