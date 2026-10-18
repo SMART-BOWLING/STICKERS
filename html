@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Нарезка изображения на плитки (PNG)</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#181b22;
+    --panel-2:#1f232c;
+    --border:#2b303b;
+    --text:#e6e9ef;
+    --muted:#8b93a7;
+    --accent:#4f8cff;
+    --accent-2:#3a6fdb;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -250px, #1b2233 0%, var(--bg) 60%);
+    background-attachment:fixed;
+    color:var(--text);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:1100px;margin:0 auto;padding:36px 20px 90px}
+  header h1{font-size:clamp(22px,4vw,32px);margin:0 0 8px;letter-spacing:-.02em}
+  header .sub{color:var(--muted);margin:0 0 26px;font-size:15px;line-height:1.5}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px;
+    margin-bottom:18px;
+  }
+
+  .drop{
+    border:2px dashed var(--border);
+    background:transparent;
+    text-align:center;
+    padding:40px 18px;
+    cursor:pointer;
+    transition:border-color .18s, background .18s, transform .18s;
+    user-select:none;
+  }
+  .drop:hover{border-color:#3d4757}
+  .drop.over{border-color:var(--accent);background:rgba(79,140,255,.08)}
+  .drop-icon{
+    font-size:28px;line-height:1;
+    width:56px;height:56px;margin:0 auto 14px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--accent);
+  }
+  .drop strong{font-weight:600}
+  .drop .link{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+  .drop .hint{color:var(--muted);font-size:13px;margin-top:10px}
+
+  .controls{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:16px;
+    align-items:end;
+  }
+  .field{display:flex;flex-direction:column;gap:7px}
+  .field > span{font-size:12.5px;color:var(--muted);letter-spacing:.02em}
+  input[type="number"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:15px;
+    font-family:inherit;
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input[type="number"]:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(79,140,255,.18);
+  }
+  .check{
+    display:flex;align-items:center;gap:10px;
+    font-size:14px;color:var(--muted);
+    padding-bottom:10px;cursor:pointer;
+  }
+  .check input{
+    appearance:none;
+    width:18px;height:18px;flex:0 0 auto;
+    border:1px solid var(--border);
+    border-radius:5px;
+    background:var(--panel-2);
+    cursor:pointer;
+    position:relative;
+    transition:.15s;
+  }
+  .check input:checked{background:var(--accent);border-color:var(--accent)}
+  .check input:checked::after{
+    content:"";position:absolute;left:5px;top:2px;
+    width:5px;height:9px;
+    border:solid #fff;border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+
+  .format-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--muted);
+    padding:10px 12px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+  }
+  .format-badge b{color:var(--text);font-weight:600}
+
+  .result-head{
+    display:flex;flex-wrap:wrap;gap:14px;
+    align-items:center;justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .summary{font-size:14px;color:var(--muted);line-height:1.5}
+  .summary strong{color:var(--text);font-size:16px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+
+  .btn{
+    font-family:inherit;
+    font-size:14px;
+    font-weight:500;
+    color:var(--text);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 16px;
+    cursor:pointer;
+    transition:.15s;
+    white-space:nowrap;
+  }
+  .btn:hover{border-color:#3d4757;background:#242935}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.primary{
+    background:linear-gradient(180deg,var(--accent),var(--accent-2));
+    border-color:transparent;
+    color:#fff;
+  }
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.small{padding:7px 12px;font-size:13px;width:100%}
+
+  .tiles{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:14px;
+  }
+  .tile{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px;
+    display:flex;flex-direction:column;gap:9px;
+  }
+  .tile-img{
+    height:120px;
+    width:100%;
+    border:0;
+    padding:6px;
+    border-radius:9px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    background-color:#1c1f26;
+    background-image:
+      linear-gradient(45deg,#262a33 25%,transparent 25%),
+      linear-gradient(-45deg,#262a33 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#262a33 75%),
+      linear-gradient(-45deg,transparent 75%,#262a33 75%);
+    background-size:16px 16px;
+    background-position:0 0,0 8px,8px -8px,-8px 0;
+    transition:box-shadow .15s;
+  }
+  .tile-img:hover{box-shadow:0 0 0 2px var(--accent) inset}
+  .tile-img img{
+    width:100%;height:100%;
+    object-fit:contain;
+    image-rendering:pixelated;
+    display:block;
+  }
+  .tile-meta{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12.5px;color:var(--muted);
+  }
+  .tile-idx{
+    background:#2a303c;
+    color:var(--text);
+    border-radius:6px;
+    padding:2px 8px;
+    font-variant-numeric:tabular-nums;
+    font-size:12px;
+  }
+  .tile-dim{font-variant-numeric:tabular-nums}
+
+  .error{
+    color:#ff8a8a;
+    background:rgba(255,90,90,.08);
+    border:1px solid rgba(255,90,90,.25);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:14px;
+    line-height:1.5;
+  }
+  .spin{
+    display:inline-block;width:14px;height:14px;vertical-align:-2px;
+    margin-right:8px;
+    border:2px solid rgba(255,255,255,.25);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Нарезка изображения на плитки</h1>
+    <p class="sub">Загрузите картинку и разрежьте её на части заданного размера. Все плитки сохраняются в PNG. Всё происходит прямо в браузере — файлы никуда не отправляются.</p>
+  </header>
+
+  <section class="panel drop" id="drop">
+    <div class="drop-icon">↑</div>
+    <div><strong>Перетащите изображение</strong> сюда или <span class="link">выберите файл</span></div>
+    <div class="hint">PNG, JPG, GIF, WebP — любой формат, который открывает браузер</div>
+    <input type="file" id="file" accept="image/*" hidden>
+  </section>
+
+  <section class="panel controls">
+    <label class="field">
+      <span>Ширина плитки (px)</span>
+      <input type="number" id="tileW" value="100" min="1" step="1">
+    </label>
+    <label class="field">
+      <span>Высота плитки (px)</span>
+      <input type="number" id="tileH" value="100" min="1" step="1">
+    </label>
+    <div class="field">
+      <span>Формат сохранения</span>
+      <div class="format-badge">PNG <b>(без потерь, с прозрачностью)</b></div>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="partial" checked>
+      <span>Включать неполные плитки по краям</span>
+    </label>
+  </section>
+
+  <section class="panel result" id="result" hidden>
+    <div class="result-head">
+      <div class="summary" id="summary"></div>
+      <div class="actions">
+        <button class="btn primary" id="downloadAll" disabled>Скачать все PNG</button>
+        <button class="btn" id="reset">Сбросить</button>
+      </div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = (s) => document.querySelector(s);
+
+  const els = {
+    drop:        $('#drop'),
+    file:        $('#file'),
+    tileW:       $('#tileW'),
+    tileH:       $('#tileH'),
+    partial:     $('#partial'),
+    result:      $('#result'),
+    summary:     $('#summary'),
+    tiles:       $('#tiles'),
+    downloadAll: $('#downloadAll'),
+    reset:       $('#reset'),
+  };
+
+  const MAX_TILES = 2000;
+  const MIME = 'image/png';
+
+  const state = {
+    img: null,
+    name: 'image',
+    tiles: [],
+    token: 0,
+  };
+
+  /* ---------- утилиты ---------- */
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function safeBaseName(name) {
+    return (name || 'image')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[\\/:*?"<>|\s]+/g, '_')
+      .slice(0, 60) || 'image';
+  }
+
+  function clearTiles() {
+    state.tiles.forEach((t) => { if (t.url) URL.revokeObjectURL(t.url); });
+    state.tiles = [];
+    els.tiles.innerHTML = '';
+  }
+
+  /* ---------- загрузка файла ---------- */
+
+  function loadFile(file) {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      showError('Это не похоже на изображение. Попробуйте PNG, JPG или WebP.');
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      state.img = img;
+      state.name = safeBaseName(file.name);
+      slice();
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showError('Не удалось открыть изображение.');
+    };
+    img.src = url;
+  }
+
+  function showError(text) {
+    els.result.hidden = false;
+    els.tiles.innerHTML = '';
+    els.summary.innerHTML = '<div class="error">' + text + '</div>';
+    els.downloadAll.disabled = true;
+    clearTiles();
+  }
+
+  /* ---------- нарезка (всегда PNG) ---------- */
+
+  async function slice() {
+    if (!state.img) return;
+
+    const token = ++state.token;
+    const img = state.img;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    const tw = Math.max(1, Math.floor(Number(els.tileW.value) || 1));
+    const th = Math.max(1, Math.floor(Number(els.tileH.value) || 1));
+    const includePartial = els.partial.checked;
+
+    const cols = Math.ceil(iw / tw);
+    const rows = Math.ceil(ih / th);
+    const total = cols * rows;
+
+    clearTiles();
+
+    if (total > MAX_TILES) {
+      showError(
+        'Слишком много плиток: ' + total + '. Увеличьте размер плитки ' +
+        '(сейчас ' + tw + '×' + th + ' px), иначе браузер не справится.'
+      );
+      return;
+    }
+
+    els.result.hidden = false;
+    els.summary.innerHTML = '<span class="spin"></span>Нарезаю…';
+    els.downloadAll.disabled = true;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const pad = Math.max(2, String(total).length);
+
+    const produced = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (token !== state.token) return;
+
+        const sx = c * tw;
+        const sy = r * th;
+        const sw = Math.min(tw, iw - sx);
+        const sh = Math.min(th, ih - sy);
+
+        if (!includePartial && (sw < tw || sh < th)) continue;
+
+        canvas.width = sw;
+        canvas.height = sh;
+        ctx.clearRect(0, 0, sw, sh);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+        const blob = await new Promise((res) => canvas.toBlob(res, MIME));
+        if (token !== state.token) return;
+        if (!blob) continue;
+
+        const index = produced.length + 1;
+        const fileName =
+          state.name + '_' + String(index).padStart(pad, '0') +
+          '_' + sw + 'x' + sh + '.png';
+
+        produced.push({
+          index,
+          blob,
+          url: URL.createObjectURL(blob),
+          fileName,
+          w: sw,
+          h: sh,
+        });
+      }
+    }
+
+    if (token !== state.token) return;
+
+    state.tiles = produced;
+    render(produced, { iw, ih, tw, th });
+  }
+
+  /* ---------- отрисовка ---------- */
+
+  function render(tiles, info) {
+    els.tiles.innerHTML = '';
+    const frag = document.createDocumentFragment();
+
+    tiles.forEach((t) => {
+      const card = document.createElement('div');
+      card.className = 'tile';
+
+      const thumb = document.createElement('button');
+      thumb.type = 'button';
+      thumb.className = 'tile-img';
+      thumb.title = 'Скачать ' + t.fileName;
+
+      const im = document.createElement('img');
+      im.src = t.url;
+      im.alt = t.fileName;
+      im.loading = 'lazy';
+      thumb.appendChild(im);
+      thumb.addEventListener('click', () => downloadBlob(t.blob, t.fileName));
+
+      const meta = document.createElement('div');
+      meta.className = 'tile-meta';
+      const idx = document.createElement('span');
+      idx.className = 'tile-idx';
+      idx.textContent = '#' + t.index;
+      const dim = document.createElement('span');
+      dim.className = 'tile-dim';
+      dim.textContent = t.w + '×' + t.h;
+      meta.append(idx, dim);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn small';
+      btn.textContent = 'Скачать PNG';
+      btn.addEventListener('click', () => downloadBlob(t.blob, t.fileName));
+
+      card.append(thumb, meta, btn);
+      frag.appendChild(card);
+    });
+
+    els.tiles.appendChild(frag);
+
+    els.summary.innerHTML =
+      '<strong>' + tiles.length + '</strong> ' +
+      plural(tiles.length, 'PNG-плитка', 'PNG-плитки', 'PNG-плиток') +
+      ' · исходник ' + info.iw + '×' + info.ih + ' px' +
+      ' · плитка ' + info.tw + '×' + info.th + ' px';
+
+    els.downloadAll.disabled = tiles.length === 0;
+  }
+
+  function plural(n, one, few, many) {
+    const n10 = n % 10, n100 = n % 100;
+    if (n10 === 1 && n100 !== 11) return one;
+    if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return few;
+    return many;
+  }
+
+  /* ---------- скачать всё ---------- */
+
+  async function downloadAll() {
+    if (!state.tiles.length) return;
+    const btn = els.downloadAll;
+    const label = btn.textContent;
+
+    btn.disabled = true;
+    btn.textContent = 'Скачиваю…';
+
+    for (const t of state.tiles) {
+      downloadBlob(t.blob, t.fileName);
+      await sleep(300);
+    }
+
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+
+  /* ---------- события ---------- */
+
+  els.drop.addEventListener('click', () => els.file.click());
+
+  els.file.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    loadFile(f);
+    e.target.value = '';
+  });
+
+  ['dragenter', 'dragover'].forEach((ev) =>
+    els.drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      els.drop.classList.add('over');
+    })
+  );
+
+  ['dragleave', 'dragend'].forEach((ev) =>
+    els.drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      els.drop.classList.remove('over');
+    })
+  );
+
+  els.drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    els.drop.classList.remove('over');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    loadFile(f);
+  });
+
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+
+  let debounceId = null;
+  function scheduleSlice() {
+    clearTimeout(debounceId);
+    debounceId = setTimeout(slice, 220);
+  }
+
+  [els.tileW, els.tileH, els.partial].forEach((el) => {
+    el.addEventListener('input', scheduleSlice);
+    el.addEventListener('change', scheduleSlice);
+  });
+
+  els.downloadAll.addEventListener('click', downloadAll);
+
+  els.reset.addEventListener('click', () => {
+    state.token++;
+    clearTiles();
+    state.img = null;
+    state.name = 'image';
+    els.result.hidden = true;
+    els.tiles.innerHTML = '';
+    els.summary.textContent = '';
+    els.downloadAll.disabled = true;
+    els.file.value = '';
+  });
+})();
+</script>
+</body>
+</html>
