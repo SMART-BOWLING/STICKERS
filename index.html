@@ -29,8 +29,6 @@
     -webkit-font-smoothing:antialiased;
   }
   .app{max-width:1100px;margin:0 auto;padding:36px 20px 90px}
-  header h1{font-size:clamp(22px,4vw,32px);margin:0 0 8px;letter-spacing:-.02em}
-  header .sub{color:var(--muted);margin:0 0 26px;font-size:15px;line-height:1.5}
 
   .panel{
     background:var(--panel);
@@ -316,10 +314,6 @@
 </head>
 <body>
 <div class="app">
-  <header>
-    <h1>Нарезка изображения на плитки</h1>
-    <p class="sub">Ползунок двигает <b>всю картинку целиком</b> относительно окна нарезки. Каждая плитка всегда ровно 100×100 (или заданного размера), края добиваются прозрачностью. Всё сохраняется в PNG прямо в браузере.</p>
-  </header>
 
   <section class="panel drop" id="drop">
     <div class="drop-icon">↑</div>
@@ -339,7 +333,7 @@
     </label>
     <div class="field">
       <span>Формат сохранения</span>
-      <div class="format-badge">PNG <b>(без потерь, с прозрачностью)</b></div>
+      <div class="format-badge">PNG <b></b></div>
     </div>
     <label class="check">
       <input type="checkbox" id="partial" checked>
@@ -356,13 +350,13 @@
       </div>
     </div>
     <div class="slider-row">
-      <button class="step-btn" id="offMinus" type="button" title="−1 px" aria-label="Уменьшить на 1 пиксель">−</button>
+      <button class="step-btn" id="offMinus" type="button" title="−4 px" aria-label="Уменьшить на 4 пикселя">−</button>
       <div class="track" id="track" role="slider" tabindex="0"
            aria-valuemin="0" aria-valuemax="9999" aria-valuenow="0" aria-label="Сдвиг картинки от левого края">
         <div class="track-rail"><div class="track-fill" id="trackFill"></div></div>
         <div class="track-thumb" id="trackThumb"></div>
       </div>
-      <button class="step-btn" id="offPlus" type="button" title="+1 px" aria-label="Увеличить на 1 пиксель">+</button>
+      <button class="step-btn" id="offPlus" type="button" title="+4 px" aria-label="Увеличить на 4 пикселя">+</button>
     </div>
     <div class="slider-hint">0 — картинка прижата к левому краю окна. Больше — картинка отодвигается вправо, а слева появляется прозрачная полоса. Нарезка обновится, когда отпустите ползунок.</div>
   </section>
@@ -407,6 +401,7 @@
 
   const MAX_TILES = 4000;
   const MIME = 'image/png';
+  const STEP = 4; // шаг кнопок +/-
 
   const state = {
     img: null,
@@ -504,15 +499,9 @@
 
   /* ---------- кастомный ползунок ---------- */
 
-  // Максимальный сдвиг: чтобы хотя бы один пиксель картинки оставался в окне
-  // Сдвигаем вправо: картинка уходит вправо, слева прозрачная полоса.
-  // Можем сдвинуть на всю ширину картинки — тогда в окне одна прозрачность.
-  // Ограничим: до iw + tw (чтобы полностью ушла и был запас). Но лучше до iw.
   function syncMaxOffset() {
     const { tw } = getTileSize();
     const iw = state.img ? state.img.naturalWidth : 0;
-    // максимум — сдвинуть картинку целиком вправо, чтобы её левый край
-    // оказался правее окна. Возьмём iw (картинка ушла на свою ширину).
     state.maxOff = Math.max(0, iw + tw);
 
     els.offXInput.min = 0;
@@ -599,13 +588,7 @@
     }, 0);
   }
 
-  /* ---------- нарезка ----------
-     Окно нарезки: [0, tw), [0, th), затем [tw, 2tw) и т.д.
-     Картинка сдвинута вправо на offX.
-     Значит, в координатах картинки окно начинается с srcX = -offX.
-     i-й столбец окна: srcX = -offX + c*tw
-     Берём пересечение окна с картинкой. Что не покрыто — прозрачно.
-  */
+  /* ---------- нарезка ---------- */
 
   async function slice() {
     if (!state.img) return;
@@ -619,9 +602,6 @@
     const includePartial = els.partial.checked;
     const offX = state.offX;
 
-    // Сколько столбцов/строк окон покрывают картинку с учётом её сдвига
-    // Картинка занимает в координатах окна: [offX, offX + iw)
-    // Столбцы окон: c*tw .. c*tw + tw
     const totalCols = Math.max(1, Math.ceil((offX + iw) / tw));
     const totalRows = Math.max(1, Math.ceil(ih / th));
     const total = totalCols * totalRows;
@@ -652,36 +632,28 @@
       for (let c = 0; c < totalCols; c++) {
         if (token !== state.token) return;
 
-        // окно c в координатах окна: winX = c*tw, winY = r*th
         const winX = c * tw;
         const winY = r * th;
 
-        // в координатах картинки: srcX = winX - offX
         const srcX = winX - offX;
         const srcY = winY;
 
-        // пересечение окна с картинкой
         const ix1 = Math.max(srcX, 0);
         const iy1 = Math.max(srcY, 0);
         const ix2 = Math.min(srcX + tw, iw);
         const iy2 = Math.min(srcY + th, ih);
 
-        const iw2 = ix2 - ix1; // ширина пересечения
+        const iw2 = ix2 - ix1;
         const ih2 = iy2 - iy1;
 
-        // полностью пустое окно (мимо картинки) — пропускаем
         if (iw2 <= 0 || ih2 <= 0) {
-          // окно целиком вне картинки
           if (!includePartial) continue;
-          // если хотим включать — рисуем полностью прозрачное
           ctx.clearRect(0, 0, tw, th);
         } else {
-          // неполное окно — при выключенной галке пропускаем
           if (!includePartial && (iw2 < tw || ih2 < th)) continue;
 
-          // рисуем в холст tw×th с правильным смещением
           ctx.clearRect(0, 0, tw, th);
-          const dx = ix1 - srcX; // куда рисовать по X внутри окна
+          const dx = ix1 - srcX;
           const dy = iy1 - srcY;
           ctx.drawImage(img, ix1, iy1, iw2, ih2, dx, dy, iw2, ih2);
         }
@@ -846,8 +818,8 @@
   els.track.addEventListener('pointercancel', onTrackPointerUp);
 
   els.track.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { stepBy(-1); e.preventDefault(); }
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { stepBy(1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { stepBy(-STEP); e.preventDefault(); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { stepBy(STEP); e.preventDefault(); }
     else if (e.key === 'Home') { setOffset(0, true); e.preventDefault(); }
     else if (e.key === 'End') { setOffset(state.maxOff, true); e.preventDefault(); }
   });
@@ -862,8 +834,8 @@
     }
   });
 
-  els.offMinus.addEventListener('click', () => stepBy(-1));
-  els.offPlus.addEventListener('click', () => stepBy(1));
+  els.offMinus.addEventListener('click', () => stepBy(-STEP));
+  els.offPlus.addEventListener('click', () => stepBy(STEP));
 
   els.downloadAll.addEventListener('click', downloadAll);
 
